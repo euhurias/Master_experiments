@@ -37,7 +37,7 @@ The code uses a Python 3.8+ environment and a GPU is desirable. The following st
   - `pandas`
   - `numpy`
 
-    $ pip install -r requirements.txt
+$ pip install -r requirements.txt
 
 ## 📁 Expected data structure
 
