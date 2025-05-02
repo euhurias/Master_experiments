@@ -28,6 +28,8 @@ This directory has code to train and evaluate classical-based , transformer-base
 The code uses a Python 3.8+ environment and a GPU is desirable. The following steps used  a Python virtual environment.
 
 ## 📌 Requirements
+  
+  $ pip install -r requirements.txt
 
 - Main libraries:
   - `transformers`
@@ -37,7 +39,6 @@ The code uses a Python 3.8+ environment and a GPU is desirable. The following st
   - `pandas`
   - `numpy`
 
-$ pip install -r requirements.txt
 
 ## 📁 Expected data structure
 
