@@ -1,0 +1,9 @@
+numpy
+pandas
+torch
+torchvision  # (Opcional, caso use imagens)
+transformers
+seqeval
+sentencepiece
+matplotlib
+pytorch-crf
