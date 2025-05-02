@@ -1,7 +1,7 @@
 numpy
 pandas
 torch
-torchvision  # (Opcional, caso use imagens)
+torchvision
 transformers
 seqeval
 sentencepiece
