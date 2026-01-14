@@ -1,0 +1,107 @@
+=== Modelo: CRF | K-Fold: 5 ===
+
+Carregando dados completos...
+Iniciando K-Fold Cross-Validation...
+
+===== Fold 1/5 =====
+Treinando modelo CRF...
+Avaliando no fold atual...
+              precision    recall  f1-score   support
+
+        DATA       0.00      0.00      0.00         2
+      EVENTO       0.93      0.82      0.87        17
+  FUNDAMENTO       0.68      0.68      0.68        22
+       LOCAL       0.72      0.43      0.54        30
+ ORGANIZACAO       0.83      0.68      0.75        50
+      PESSOA       0.81      0.53      0.64       136
+PRODUTODELEI       0.80      0.66      0.72        89
+
+   micro avg       0.80      0.60      0.68       346
+   macro avg       0.68      0.54      0.60       346
+weighted avg       0.79      0.60      0.68       346
+
+F1-score do Fold 1: 0.6843
+
+===== Fold 2/5 =====
+Treinando modelo CRF...
+Avaliando no fold atual...
+              precision    recall  f1-score   support
+
+        DATA       0.50      0.25      0.33         4
+      EVENTO       0.81      0.59      0.68        22
+  FUNDAMENTO       0.87      0.46      0.60        28
+       LOCAL       0.82      0.70      0.76        20
+ ORGANIZACAO       0.88      0.65      0.75        82
+      PESSOA       0.78      0.55      0.65       150
+PRODUTODELEI       0.85      0.71      0.78        73
+
+   micro avg       0.82      0.60      0.70       379
+   macro avg       0.79      0.56      0.65       379
+weighted avg       0.82      0.60      0.69       379
+
+F1-score do Fold 2: 0.6971
+
+===== Fold 3/5 =====
+Treinando modelo CRF...
+Avaliando no fold atual...
+              precision    recall  f1-score   support
+
+        DATA       1.00      0.33      0.50         9
+      EVENTO       1.00      0.56      0.71         9
+  FUNDAMENTO       0.81      0.67      0.73        33
+       LOCAL       0.75      0.52      0.61        29
+ ORGANIZACAO       0.78      0.63      0.70        46
+      PESSOA       0.81      0.55      0.66       159
+PRODUTODELEI       0.80      0.65      0.72        84
+
+   micro avg       0.80      0.59      0.68       369
+   macro avg       0.85      0.56      0.66       369
+weighted avg       0.81      0.59      0.68       369
+
+F1-score do Fold 3: 0.6792
+
+===== Fold 4/5 =====
+Treinando modelo CRF...
+Avaliando no fold atual...
+              precision    recall  f1-score   support
+
+        DATA       0.50      0.25      0.33         4
+      EVENTO       0.60      0.35      0.44        17
+  FUNDAMENTO       0.68      0.52      0.59        25
+       LOCAL       0.71      0.44      0.55        45
+ ORGANIZACAO       0.83      0.53      0.64        72
+      PESSOA       0.82      0.53      0.64       153
+PRODUTODELEI       0.81      0.74      0.77        78
+
+   micro avg       0.79      0.55      0.65       394
+   macro avg       0.71      0.48      0.57       394
+weighted avg       0.78      0.55      0.64       394
+
+F1-score do Fold 4: 0.6478
+
+===== Fold 5/5 =====
+Treinando modelo CRF...
+Avaliando no fold atual...
+              precision    recall  f1-score   support
+
+        DATA       0.00      0.00      0.00         8
+      EVENTO       0.75      0.46      0.57        13
+  FUNDAMENTO       1.00      0.50      0.67        20
+       LOCAL       0.80      0.76      0.78        21
+ ORGANIZACAO       0.82      0.54      0.65        57
+      PESSOA       0.86      0.61      0.72       161
+PRODUTODELEI       0.72      0.68      0.70        77
+
+   micro avg       0.81      0.60      0.69       357
+   macro avg       0.71      0.51      0.58       357
+weighted avg       0.80      0.60      0.68       357
+
+F1-score do Fold 5: 0.6892
+
+===== Resultados Finais =====
+Fold 1: F1 = 0.6843
+Fold 2: F1 = 0.6971
+Fold 3: F1 = 0.6792
+Fold 4: F1 = 0.6478
+Fold 5: F1 = 0.6892
+Média: 0.6795

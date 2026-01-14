@@ -1,0 +1,20 @@
+FOLD 3 - ELECTRA LINEAR
+==================================================
+F1: 0.9126
+Precision: 0.8930
+Recall: 0.9332
+Loss: 0.0583
+
+                precision    recall  f1-score   support
+
+JURISPRUDENCIA       0.85      0.89      0.87       265
+    LEGISLACAO       0.89      0.95      0.92       483
+         LOCAL       0.85      0.84      0.84       113
+   ORGANIZACAO       0.88      0.91      0.89       627
+        PESSOA       0.95      0.98      0.97       352
+         TEMPO       0.97      0.97      0.97       315
+             _       0.00      0.00      0.00         0
+
+     micro avg       0.89      0.93      0.91      2155
+     macro avg       0.77      0.79      0.78      2155
+  weighted avg       0.90      0.93      0.92      2155

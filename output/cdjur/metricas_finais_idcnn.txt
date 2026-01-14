@@ -1,0 +1,10 @@
+F1 Médio: 0.2331 (±0.0239)
+Valores por Fold: [np.float64(0.2465), np.float64(0.1905), np.float64(0.2314), np.float64(0.2351), np.float64(0.2622)]
+Melhor Fold: 5 (F1 = 0.2622)
+Pior Fold: 2 (F1 = 0.1905)
+
+Configurações:
+Épocas: 15
+Batch Size: 16
+Learning Rate: 5e-05
+Paciência: 5

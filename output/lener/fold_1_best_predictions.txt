@@ -1,0 +1,42 @@
+Melhor F1: 0.8855
+
+Exemplo 0:
+Verdadeiro: ['O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'B-ORGANIZACAO', 'I-ORGANIZACAO', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O']
+Previsto:   ['O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'B-ORGANIZACAO', 'I-ORGANIZACAO', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'B-LOCAL', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O']
+
+Exemplo 1:
+Verdadeiro: ['O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'B-ORGANIZACAO', 'I-ORGANIZACAO', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O']
+Previsto:   ['O', 'O', 'O', 'O', 'O', 'O', 'O', 'B-ORGANIZACAO', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'B-ORGANIZACAO', 'I-ORGANIZACAO', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O']
+
+Exemplo 2:
+Verdadeiro: ['O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'B-ORGANIZACAO', 'I-ORGANIZACAO', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'B-ORGANIZACAO', 'O', 'B-JURISPRUDENCIA', 'I-JURISPRUDENCIA', 'I-JURISPRUDENCIA', 'I-JURISPRUDENCIA', 'O', 'O', 'O', 'O', 'B-PESSOA', 'I-PESSOA', 'I-PESSOA', 'O', 'B-ORGANIZACAO', 'I-ORGANIZACAO', 'O', 'O', 'O', 'B-TEMPO', 'O', 'O', 'B-TEMPO', 'O', 'O']
+Previsto:   ['O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'B-ORGANIZACAO', 'I-ORGANIZACAO', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'B-ORGANIZACAO', 'I-JURISPRUDENCIA', 'B-JURISPRUDENCIA', 'I-JURISPRUDENCIA', 'I-JURISPRUDENCIA', 'I-JURISPRUDENCIA', 'O', 'O', 'O', 'O', 'B-PESSOA', 'I-PESSOA', 'I-PESSOA', 'O', 'B-ORGANIZACAO', 'I-ORGANIZACAO', 'O', 'O', 'O', 'B-TEMPO', 'O', 'O', 'B-TEMPO', 'O', 'O']
+
+Exemplo 3:
+Verdadeiro: ['O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O']
+Previsto:   ['O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O']
+
+Exemplo 4:
+Verdadeiro: ['B-JURISPRUDENCIA', 'I-JURISPRUDENCIA', 'I-JURISPRUDENCIA', 'I-JURISPRUDENCIA', 'O', 'B-LOCAL', 'I-LOCAL', 'I-LOCAL', 'I-LOCAL', 'O', 'O', 'O', 'O', 'O', 'O', 'B-PESSOA', 'I-PESSOA', 'I-PESSOA', 'I-PESSOA', 'I-PESSOA', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'B-PESSOA', 'I-PESSOA', 'I-PESSOA', 'I-PESSOA', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'B-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'B-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO']
+Previsto:   ['B-JURISPRUDENCIA', 'I-JURISPRUDENCIA', 'I-JURISPRUDENCIA', 'I-JURISPRUDENCIA', 'O', 'B-LOCAL', 'I-LOCAL', 'I-LOCAL', 'I-LOCAL', 'O', 'O', 'O', 'O', 'O', 'O', 'B-PESSOA', 'I-PESSOA', 'I-PESSOA', 'I-PESSOA', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'B-PESSOA', 'I-PESSOA', 'I-PESSOA', 'I-PESSOA', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'B-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'B-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO']
+
+Exemplo 5:
+Verdadeiro: ['B-PESSOA', 'I-PESSOA', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'B-PESSOA', 'I-PESSOA', 'I-PESSOA', 'I-PESSOA', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O']
+Previsto:   ['B-PESSOA', 'I-PESSOA', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'B-PESSOA', 'I-PESSOA', 'I-PESSOA', 'I-PESSOA', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O']
+
+Exemplo 6:
+Verdadeiro: ['O', 'O', 'B-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'B-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O']
+Previsto:   ['O', 'O', 'B-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'B-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'I-ORGANIZACAO', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O']
+
+Exemplo 7:
+Verdadeiro: ['O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O']
+Previsto:   ['O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O']
+
+Exemplo 8:
+Verdadeiro: ['O', 'O', 'O', 'O', 'O', 'O', 'O']
+Previsto:   ['O', 'O', 'O', 'O', 'O', 'O', 'O']
+
+Exemplo 9:
+Verdadeiro: ['O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'B-ORGANIZACAO', 'O']
+Previsto:   ['O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'B-ORGANIZACAO', 'O']
+

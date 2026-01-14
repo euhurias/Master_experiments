@@ -1,0 +1,42 @@
+Melhor F1: 0.6211
+
+Exemplo 0:
+Verdadeiro: ['B-PES_OUTROS', 'I-PES_OUTROS', 'I-PES_OUTROS']
+Previsto:   ['B-PES_OUTROS', 'I-PES_OUTROS', 'I-PES_OUTROS']
+
+Exemplo 1:
+Verdadeiro: ['B-PES_REU_FIS']
+Previsto:   ['B-PES_REU_FIS']
+
+Exemplo 2:
+Verdadeiro: ['B-PES_AUTOR_JUR', 'I-PES_AUTOR_JUR']
+Previsto:   ['B-PES_AUTOR_JUR', 'I-PES_AUTOR_JUR']
+
+Exemplo 3:
+Verdadeiro: ['B-PES_REU_FIS', 'I-PES_REU_FIS', 'I-PES_REU_FIS', 'I-PES_REU_FIS']
+Previsto:   ['B-PES_REU_FIS', 'I-PES_REU_FIS', 'I-PES_REU_FIS', 'I-PES_REU_FIS']
+
+Exemplo 4:
+Verdadeiro: ['B-NOR_PRINCIPAL', 'I-NOR_PRINCIPAL', 'I-NOR_PRINCIPAL']
+Previsto:   ['B-NOR_PRINCIPAL', 'I-NOR_PRINCIPAL', 'I-NOR_PRINCIPAL']
+
+Exemplo 5:
+Verdadeiro: ['B-PES_REU_FIS', 'I-PES_REU_FIS', 'I-PES_REU_FIS', 'I-PES_REU_FIS']
+Previsto:   ['B-PES_REU_FIS', 'I-PES_REU_FIS', 'I-PES_REU_FIS', 'I-PES_REU_FIS']
+
+Exemplo 6:
+Verdadeiro: ['B-PES_REU_FIS', 'I-PES_REU_FIS', 'I-PES_REU_FIS', 'I-PES_REU_FIS', 'I-PES_REU_FIS']
+Previsto:   ['B-PES_OUTROS', 'I-PES_OUTROS', 'I-PES_OUTROS', 'I-PES_OUTROS', 'I-PES_OUTROS']
+
+Exemplo 7:
+Verdadeiro: ['B-NOR_PRINCIPAL', 'I-NOR_PRINCIPAL', 'I-NOR_PRINCIPAL']
+Previsto:   ['B-NOR_PRINCIPAL', 'I-NOR_PRINCIPAL', 'I-NOR_PRINCIPAL']
+
+Exemplo 8:
+Verdadeiro: ['B-NOR_PRINCIPAL', 'I-NOR_PRINCIPAL', 'I-NOR_PRINCIPAL', 'I-NOR_PRINCIPAL', 'I-NOR_PRINCIPAL']
+Previsto:   ['B-NOR_PRINCIPAL', 'I-NOR_PRINCIPAL', 'I-NOR_PRINCIPAL', 'I-NOR_PRINCIPAL', 'I-NOR_PRINCIPAL']
+
+Exemplo 9:
+Verdadeiro: ['B-PES_VITIMA', 'I-PES_VITIMA', 'I-PES_VITIMA']
+Previsto:   ['B-PES_VITIMA', 'I-PES_OUTROS', 'I-PES_OUTROS']
+

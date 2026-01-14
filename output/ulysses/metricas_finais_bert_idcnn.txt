@@ -1,0 +1,2 @@
+F1 Médio: 0.0000 (±0.0000)
+Valores por Fold: [np.float64(0.0), np.float64(0.0), np.float64(0.0), np.float64(0.0), np.float64(0.0)]

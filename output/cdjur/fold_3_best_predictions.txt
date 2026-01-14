@@ -1,0 +1,42 @@
+Melhor F1: 0.6180
+
+Exemplo 0:
+Verdadeiro: ['B-CLASSE_CNJ']
+Previsto:   ['B-CLASSE_CNJ']
+
+Exemplo 1:
+Verdadeiro: ['B-NOR_ACESSORIA', 'I-NOR_ACESSORIA', 'I-NOR_ACESSORIA', 'I-NOR_ACESSORIA', 'I-NOR_ACESSORIA']
+Previsto:   ['B-NOR_ACESSORIA', 'I-NOR_ACESSORIA', 'I-NOR_ACESSORIA', 'I-NOR_ACESSORIA', 'I-NOR_ACESSORIA']
+
+Exemplo 2:
+Verdadeiro: ['B-PES_OUTROS']
+Previsto:   ['B-PES_OUTROS']
+
+Exemplo 3:
+Verdadeiro: ['B-PES_REU_FIS', 'I-PES_REU_FIS', 'I-PES_REU_FIS', 'I-PES_REU_FIS']
+Previsto:   ['B-PES_REU_FIS', 'I-PES_REU_FIS', 'I-PES_REU_FIS', 'I-PES_REU_FIS']
+
+Exemplo 4:
+Verdadeiro: ['B-PES_REU_FIS', 'I-PES_REU_FIS', 'I-PES_REU_FIS', 'I-PES_REU_FIS', 'I-PES_REU_FIS']
+Previsto:   ['B-PES_REU_FIS', 'I-PES_REU_FIS', 'I-PES_REU_FIS', 'I-PES_REU_FIS', 'I-PES_REU_FIS']
+
+Exemplo 5:
+Verdadeiro: ['B-PES_TESTEMUNHA', 'I-PES_TESTEMUNHA', 'I-PES_TESTEMUNHA', 'I-PES_TESTEMUNHA', 'I-PES_TESTEMUNHA']
+Previsto:   ['B-PES_REU_FIS', 'I-PES_REU_FIS', 'I-PES_REU_FIS', 'I-PES_REU_FIS', 'I-PES_REU_FIS']
+
+Exemplo 6:
+Verdadeiro: ['B-ASSUNTO_CNJ']
+Previsto:   ['B-ASSUNTO_CNJ']
+
+Exemplo 7:
+Verdadeiro: ['B-PES_REU_FIS', 'I-PES_REU_FIS']
+Previsto:   ['B-PES_REU_FIS', 'I-PES_REU_FIS']
+
+Exemplo 8:
+Verdadeiro: ['B-PES_TESTEMUNHA', 'I-PES_TESTEMUNHA', 'I-PES_TESTEMUNHA', 'I-PES_TESTEMUNHA']
+Previsto:   ['B-PES_REU_FIS', 'I-PES_REU_FIS', 'I-PES_REU_FIS', 'I-PES_REU_FIS']
+
+Exemplo 9:
+Verdadeiro: ['B-NOR_PRINCIPAL', 'I-NOR_PRINCIPAL', 'I-NOR_PRINCIPAL', 'I-NOR_PRINCIPAL', 'I-NOR_PRINCIPAL', 'I-NOR_PRINCIPAL']
+Previsto:   ['B-NOR_PRINCIPAL', 'I-NOR_PRINCIPAL', 'I-NOR_PRINCIPAL', 'I-NOR_PRINCIPAL', 'I-NOR_PRINCIPAL', 'I-NOR_PRINCIPAL']
+

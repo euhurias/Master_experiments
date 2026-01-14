@@ -1,0 +1,6 @@
+F1 Médio: 0.8881 (±0.0086)
+Valores por Fold: [np.float64(0.8855), np.float64(0.9043), np.float64(0.8859), np.float64(0.8787), np.float64(0.886)]
+Melhor Fold: 2 (F1 = 0.9043)
+LoRA r: 8
+LoRA alpha: 16
+Class Weights: False
