@@ -2,26 +2,47 @@ import sys
 import os
 import argparse
 import logging
+import time
+import json
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.utils import data
 from torch.optim import AdamW
 from transformers import XLNetForTokenClassification, XLNetTokenizer, get_linear_schedule_with_warmup
-from seqeval.metrics import classification_report, f1_score
+from seqeval.metrics import classification_report, f1_score, precision_score, recall_score
 from sklearn.model_selection import KFold
+from tqdm import tqdm
+from collections import Counter
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--data', required=True, help='Arquivo com dados no formato IOB')
+    parser.add_argument('--output_dir', required=True, help='Diretório para salvar resultados')
+    parser.add_argument('--model_name', type=str, default='xlnet-base-cased')
+    parser.add_argument('--k_folds', type=int, default=5)
+    parser.add_argument('--batch_size', type=int, default=16)
+    parser.add_argument('--epochs', type=int, default=15)
+    parser.add_argument('--learning_rate', type=str, default='3e-5')
+    parser.add_argument('--patience', type=int, default=3)
+    parser.add_argument('--max_seq_length', type=int, default=180)
+    parser.add_argument('--dropout', type=float, default=0.1)
+    parser.add_argument('--weight_decay', type=float, default=0.01)
+    parser.add_argument('--warmup_steps', type=int, default=0)
+    parser.add_argument('--gradient_accumulation_steps', type=int, default=1)
+    parser.add_argument('--cnn_filters', type=int, default=128)
+    parser.add_argument('--cnn_kernel_sizes', type=str, default='3,5,7',
+                        help='Tamanhos dos kernels CNN separados por vírgula')
+    parser.add_argument('--use_class_weights', action='store_true',
+                        help='Usar pesos de classe na loss')
+    return parser.parse_args()
 
 class Config:
-    model_name = 'xlnet-base-cased'
-    max_seq_length = 180
-    batch_size = 16
-    learning_rate = 3e-5
-    total_train_epochs = 15
-    k_folds = 5
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    seed = 44
-    patience = 3
-    dropout_rate = 0.1
+    seed = 42
+    logging_steps = 50
+    max_grad_norm = 1.0
 
 class InputExample:
     def __init__(self, guid, words, labels):
@@ -30,299 +51,519 @@ class InputExample:
         self.labels = labels
 
 class DataProcessor:
-    @classmethod
-    def _read_data(cls, input_file):
-        with open(input_file) as f:
-            return f.read().strip().split("\n\n")
-    
+    def __init__(self):
+        self.label_map = {}
+        self.labels = []
+        self.reverse_label_map = {}
+
     def get_examples(self, data_file):
         examples = []
-        entries = self._read_data(data_file)
-        for i, entry in enumerate(entries):
-            words, labels = [], []
-            for line in entry.split('\n'):
-                if line.strip():
-                    parts = line.strip().split()
-                    words.append(parts[0])
-                    labels.append(parts[-1])
-            examples.append(InputExample(i, words, labels))
+        all_labels = set()
+
+        if not os.path.exists(data_file):
+            raise FileNotFoundError(f"Arquivo de dados não encontrado: {data_file}")
+
+        with open(data_file, 'r', encoding='utf-8') as f:
+            entries = f.read().strip().split("\n\n")
+
+            for i, entry in enumerate(entries):
+                words, labels = [], []
+                for line in entry.split('\n'):
+                    if line.strip():
+                        parts = line.strip().split()
+                        if len(parts) >= 2:
+                            words.append(parts[0])
+                            label = parts[-1].upper()
+                            labels.append(label)
+                            all_labels.add(label)
+                if words:
+                    examples.append(InputExample(i, words, labels))
+
+        self._create_label_maps(all_labels)
         return examples
 
-def create_label_map(examples):
-    all_labels = set()
-    for ex in examples:
-        all_labels.update(ex.labels)
-    special_labels = ['X']
-    labels = special_labels + sorted([l for l in all_labels if l not in special_labels])
-    return {label: i for i, label in enumerate(labels)}
+    def _create_label_maps(self, labels):
+        special_labels = ['[PAD]', '[CLS]', '[SEP]', 'X']
+        self.labels = special_labels + sorted([l for l in labels if l not in special_labels])
+        self.label_map = {label: i for i, label in enumerate(self.labels)}
+        self.reverse_label_map = {i: label for i, label in enumerate(self.labels)}
+        logging.info(f"Labels mapeados ({len(self.labels)}): {list(self.label_map.keys())[:10]}...")
 
-class NerDataset(data.Dataset):
-    def __init__(self, examples, tokenizer, label_map, max_len):
-        self.examples = examples
-        self.tokenizer = tokenizer
-        self.label_map = label_map
-        self.max_len = max_len
+def convert_examples_to_features(examples, tokenizer, processor, max_seq_length):
+    features = []
+    for ex_idx, ex in enumerate(examples):
+        try:
+            tokens = []
+            label_ids = []
+            predict_mask = []
+
+            for word, label in zip(ex.words, ex.labels):
+                if label not in processor.label_map:
+                    raise ValueError(f"Label '{label}' não encontrado no mapeamento")
+
+                word_tokens = tokenizer.tokenize(word) or [tokenizer.unk_token]
+                tokens.extend(word_tokens)
+
+                main_label = processor.label_map[label]
+                label_ids.append(main_label)
+                predict_mask.append(1)
+                if len(word_tokens) > 1:
+                    label_ids.extend([-100] * (len(word_tokens) - 1))
+                    predict_mask.extend([0] * (len(word_tokens) - 1))
+
+            tokens = [tokenizer.cls_token] + tokens + [tokenizer.sep_token]
+            label_ids = [-100] + label_ids + [-100]
+            predict_mask = [0] + predict_mask + [0]
+
+            # Truncamento
+            if len(tokens) > max_seq_length:
+                tokens = tokens[:max_seq_length]
+                label_ids = label_ids[:max_seq_length]
+                predict_mask = predict_mask[:max_seq_length]
+
+            # Padding
+            pad_len = max_seq_length - len(tokens)
+            input_ids = tokenizer.convert_tokens_to_ids(tokens) + [tokenizer.pad_token_id] * pad_len
+            attention_mask = [1] * len(tokens) + [0] * pad_len
+            label_ids += [-100] * pad_len
+            predict_mask += [0] * pad_len
+
+            features.append({
+                'input_ids': input_ids,
+                'attention_mask': attention_mask,
+                'labels': label_ids,
+                'predict_mask': predict_mask
+            })
+
+        except Exception as e:
+            logging.error(f"Erro no exemplo {ex_idx}: {str(e)}")
+            logging.error(f"Texto: {' '.join(ex.words)}")
+            logging.error(f"Labels: {ex.labels}")
+            raise
+
+    return features
+
+class NERDataset(data.Dataset):
+    def __init__(self, examples, tokenizer, processor, max_seq_length):
+        self.features = convert_examples_to_features(examples, tokenizer, processor, max_seq_length)
 
     def __len__(self):
-        return len(self.examples)
-    
+        return len(self.features)
+
     def __getitem__(self, idx):
-        ex = self.examples[idx]
-        tokens = ex.words
-        labels = ex.labels
-        
-        input_ids = [self.tokenizer.cls_token_id]
-        label_ids = [self.label_map['X']]
-        predict_mask = [0]
-
-        for word, label in zip(tokens, labels):
-            word_tokens = self.tokenizer.tokenize(word) or [self.tokenizer.unk_token]
-            input_ids.extend(self.tokenizer.convert_tokens_to_ids(word_tokens))
-            
-            label_ids.append(self.label_map[label])
-            predict_mask.append(1)
-            
-            for _ in range(1, len(word_tokens)):
-                label_ids.append(self.label_map['X'])
-                predict_mask.append(0)
-
-        input_ids.append(self.tokenizer.sep_token_id)
-        label_ids.append(self.label_map['X'])
-        predict_mask.append(0)
-
-        input_ids = input_ids[:self.max_len]
-        label_ids = label_ids[:self.max_len]
-        predict_mask = predict_mask[:self.max_len]
-
-        padding = self.max_len - len(input_ids)
-        input_ids += [self.tokenizer.pad_token_id] * padding
-        label_ids += [self.label_map['X']] * padding
-        predict_mask += [0] * padding
-        
-        attention_mask = [1] * (self.max_len - padding) + [0] * padding
-
+        feat = self.features[idx]
         return {
-            'input_ids': torch.tensor(input_ids),
-            'attention_mask': torch.tensor(attention_mask),
-            'labels': torch.tensor(label_ids),
-            'predict_mask': torch.tensor(predict_mask)
+            'input_ids': torch.tensor(feat['input_ids'], dtype=torch.long),
+            'attention_mask': torch.tensor(feat['attention_mask'], dtype=torch.long),
+            'labels': torch.tensor(feat['labels'], dtype=torch.long),
+            'predict_mask': torch.tensor(feat['predict_mask'], dtype=torch.bool)
         }
 
 class XLNetCNN(nn.Module):
-    def __init__(self, base_model, num_labels, dropout_rate=0.1, cnn_filters=128, cnn_kernel_sizes=[3, 5, 7]):
+    def __init__(self, model_name, num_labels, cnn_filters=128, cnn_kernel_sizes=[3,5,7], dropout=0.1):
         super().__init__()
-        self.xlnet = base_model
-        hidden_size = self.xlnet.config.hidden_size
-        
+        self.xlnet = XLNetForTokenClassification.from_pretrained(
+            model_name,
+            num_labels=num_labels,
+            output_hidden_states=True
+        ).transformer  # usamos apenas o corpo do XLNet
+        hidden_size = self.xlnet.config.d_model
+
         self.convs = nn.ModuleList([
             nn.Conv1d(hidden_size, cnn_filters, ks, padding=ks//2)
             for ks in cnn_kernel_sizes
         ])
-        
-        self.dropout = nn.Dropout(dropout_rate)
+
+        self.dropout = nn.Dropout(dropout)
         self.classifier = nn.Linear(cnn_filters * len(cnn_kernel_sizes), num_labels)
-        self.num_labels = num_labels
-        
-    def forward(self, input_ids, attention_mask=None, labels=None):
-        outputs = self.xlnet(input_ids, attention_mask=attention_mask, output_hidden_states=True)
-        sequence_output = outputs.hidden_states[-1]
-        
+
+        self._init_weights()
+
+    def _init_weights(self):
+        for conv in self.convs:
+            nn.init.xavier_uniform_(conv.weight)
+            nn.init.zeros_(conv.bias)
+        nn.init.xavier_uniform_(self.classifier.weight)
+        nn.init.zeros_(self.classifier.bias)
+
+    def forward(self, input_ids, attention_mask=None, labels=None, class_weights=None):
+        # outputs: last_hidden_state shape [batch, seq_len, hidden_size]
+        outputs = self.xlnet(input_ids, attention_mask=attention_mask)
+        sequence_output = outputs.last_hidden_state
+
+        # Transpor para [batch, hidden_size, seq_len] para conv1d
         x = sequence_output.transpose(1, 2)
-        
+
         conv_outputs = []
         for conv in self.convs:
-            conv_out = torch.relu(conv(x))
-            conv_out = torch.max_pool1d(conv_out, conv_out.size(2)).squeeze(2)
+            conv_out = F.relu(conv(x))                    # [batch, cnn_filters, seq_len]
             conv_outputs.append(conv_out)
-        
-        x = torch.cat(conv_outputs, dim=1)
+
+        # Concatenar ao longo da dimensão de filtros
+        x = torch.cat(conv_outputs, dim=1)                # [batch, cnn_filters * len(kernels), seq_len]
+        x = x.transpose(1, 2)                             # [batch, seq_len, cnn_filters * len(kernels)]
         x = self.dropout(x)
-        logits = self.classifier(x)
-        
+
+        logits = self.classifier(x)                       # [batch, seq_len, num_labels]
+
         loss = None
         if labels is not None:
-            loss_fct = nn.CrossEntropyLoss()
-            active_loss = attention_mask.view(-1) == 1
-            active_logits = logits.view(-1, self.num_labels)[active_loss]
-            active_labels = labels.view(-1)[active_loss]
-            loss = loss_fct(active_logits, active_labels)
-            
-        return {'loss': loss, 'logits': logits}
+            active_loss = (attention_mask == 1) & (labels != -100)
+            active_logits = logits[active_loss]
+            active_labels = labels[active_loss]
 
-def evaluate(model, dataloader, label_map):
+            if active_labels.numel() > 0:
+                if class_weights is not None:
+                    loss_fn = nn.CrossEntropyLoss(weight=class_weights)
+                else:
+                    loss_fn = nn.CrossEntropyLoss()
+                loss = loss_fn(active_logits, active_labels)
+            else:
+                loss = torch.tensor(0.0, device=logits.device, requires_grad=True)
+
+        return loss, logits
+
+def evaluate(model, dataloader, processor, class_weights=None):
     model.eval()
     true_labels, pred_labels = [], []
-    id2label = {v: k for k, v in label_map.items()}
-    
+    total_loss = 0
+
     with torch.no_grad():
-        for batch in dataloader:
-            inputs = {k: v.to(Config.device) for k, v in batch.items() if k != 'predict_mask'}
-            outputs = model(**inputs)
-            logits = outputs.logits
-            preds = logits.argmax(-1).cpu().numpy()
-            
+        for batch in tqdm(dataloader, desc="Avaliando", leave=False):
+            input_ids = batch['input_ids'].to(Config.device)
+            attention_mask = batch['attention_mask'].to(Config.device)
+            labels = batch['labels'].to(Config.device)
+            predict_mask = batch['predict_mask'].cpu().numpy()
+
+            loss, logits = model(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                labels=labels,
+                class_weights=class_weights
+            )
+            total_loss += loss.item()
+
+            preds = torch.argmax(logits, dim=-1).cpu().numpy()
+            labels_np = labels.cpu().numpy()
+
             for i in range(len(preds)):
-                mask = batch['predict_mask'][i].numpy().astype(bool)
-                
-                pairs = []
-                for t, p, m in zip(batch['labels'][i].tolist(), preds[i], mask):
-                    if m:
-                        true_label = id2label[t]
-                        pred_label = id2label[p]
-                        if true_label != 'X' and pred_label != 'X':
-                            pairs.append((true_label, pred_label))
-                
-                if pairs:
-                    t, p = zip(*pairs)
-                    true_labels.append(list(t))
-                    pred_labels.append(list(p))
-    
+                current_true = []
+                current_pred = []
+                for j in range(len(predict_mask[i])):
+                    if predict_mask[i][j] and labels_np[i][j] != -100:
+                        true_label = processor.reverse_label_map[labels_np[i][j]]
+                        pred_label = processor.reverse_label_map[preds[i][j]]
+                        if true_label not in ['[PAD]', '[CLS]', '[SEP]', 'X']:
+                            current_true.append(true_label)
+                            current_pred.append(pred_label)
+                if current_true:
+                    true_labels.append(current_true)
+                    pred_labels.append(current_pred)
+
+    avg_loss = total_loss / max(len(dataloader), 1)
+
+    if true_labels and pred_labels:
+        try:
+            f1 = f1_score(true_labels, pred_labels, zero_division=0)
+            precision = precision_score(true_labels, pred_labels, zero_division=0)
+            recall = recall_score(true_labels, pred_labels, zero_division=0)
+            report = classification_report(true_labels, pred_labels, zero_division=0)
+        except:
+            f1 = precision = recall = 0.0
+            report = "Erro ao calcular métricas"
+    else:
+        f1 = precision = recall = 0.0
+        report = "Nenhuma predição válida"
+
     return {
-        'f1': f1_score(true_labels, pred_labels),
-        'report': classification_report(true_labels, pred_labels, zero_division=0)
+        'loss': avg_loss,
+        'f1': f1,
+        'precision': precision,
+        'recall': recall,
+        'report': report
     }
 
-def train_fold(fold, train_loader, val_loader, label_map, args):
-    base_model = XLNetForTokenClassification.from_pretrained(
-        Config.model_name,
-        num_labels=len(label_map),
-        output_hidden_states=True
-    )
-    model = XLNetCNN(base_model.xlnet, len(label_map))
-    model.to(Config.device)
-    
-    optimizer = AdamW(model.parameters(), lr=args.learning_rate)
+def train_fold(fold, train_loader, val_loader, processor, args):
+    # Verificar distribuição de labels no treino
+    label_counter = Counter()
+    for batch in train_loader:
+        labels = batch['labels'].numpy()
+        mask = batch['predict_mask'].numpy()
+        for i in range(len(labels)):
+            for j in range(len(labels[i])):
+                if mask[i][j] and labels[i][j] != -100:
+                    label = processor.reverse_label_map[labels[i][j]]
+                    label_counter[label] += 1
+    logging.info(f"Distribuição de labels no treino (Fold {fold}): {dict(label_counter)}")
+
+    # Converter kernel sizes de string para lista de inteiros
+    kernel_sizes = [int(x) for x in args.cnn_kernel_sizes.split(',')]
+
+    # Criar modelo
+    model = XLNetCNN(
+        args.model_name,
+        len(processor.labels),
+        cnn_filters=args.cnn_filters,
+        cnn_kernel_sizes=kernel_sizes,
+        dropout=args.dropout
+    ).to(Config.device)
+
+    # Calcular pesos de classe se solicitado
+    class_weights = None
+    if args.use_class_weights:
+        total = sum(label_counter.values())
+        num_classes = len(processor.labels)
+        weights = []
+        for lbl in processor.labels:
+            count = label_counter.get(lbl, 0)
+            if count > 0:
+                weight = total / (num_classes * count)
+            else:
+                weight = 1.0
+            weights.append(weight)
+        class_weights = torch.FloatTensor(weights).to(Config.device)
+        logging.info(f"Pesos de classe calculados: {class_weights}")
+
+    # Otimizador
+    base_lr = float(args.learning_rate)
+    optimizer = AdamW(model.parameters(), lr=base_lr, weight_decay=args.weight_decay)
+
+    total_steps = len(train_loader) * args.epochs // args.gradient_accumulation_steps
+    warmup_steps = args.warmup_steps if args.warmup_steps > 0 else int(0.1 * total_steps)
     scheduler = get_linear_schedule_with_warmup(
         optimizer,
-        num_warmup_steps=0,
-        num_training_steps=len(train_loader)*args.epochs
+        num_warmup_steps=warmup_steps,
+        num_training_steps=total_steps
     )
-    
-    best_f1 = 0
-    patience = 0
-    
+
+    best_f1 = -1
+    patience_counter = 0
+    best_model_path = os.path.join(args.output_dir, f"xlnet_cnn_fold_{fold}_best.pt")
+
+    logging.info(f"🔧 Configuração Fold {fold}:")
+    logging.info(f"  Labels: {len(processor.labels)}")
+    logging.info(f"  Batch size: {args.batch_size}")
+    logging.info(f"  CNN filters: {args.cnn_filters}")
+    logging.info(f"  CNN kernel sizes: {kernel_sizes}")
+    logging.info(f"  Dropout: {args.dropout}")
+
+    global_step = 0
     for epoch in range(args.epochs):
+        epoch_start_time = time.time()
         model.train()
         total_loss = 0
-        
-        for batch in train_loader:
-            inputs = {k: v.to(Config.device) for k, v in batch.items() if k != 'predict_mask'}
-            outputs = model(**inputs)
-            loss = outputs.loss
-            
+        batch_count = 0
+
+        progress_bar = tqdm(train_loader, desc=f"Fold {fold} - Época {epoch+1}", leave=False)
+
+        for step, batch in enumerate(progress_bar):
+            input_ids = batch['input_ids'].to(Config.device)
+            attention_mask = batch['attention_mask'].to(Config.device)
+            labels = batch['labels'].to(Config.device)
+
+            loss, _ = model(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                labels=labels,
+                class_weights=class_weights
+            )
+
+            if args.gradient_accumulation_steps > 1:
+                loss = loss / args.gradient_accumulation_steps
+
             loss.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-            optimizer.step()
-            scheduler.step()
-            optimizer.zero_grad()
-            
             total_loss += loss.item()
-        
-        avg_loss = total_loss / len(train_loader)
-        results = evaluate(model, val_loader, label_map)
-        
-        print(f"Fold {fold}, Epoch {epoch+1}: Loss={avg_loss:.4f}, F1={results['f1']:.4f}")
-        
-        if results['f1'] > best_f1:
-            best_f1 = results['f1']
-            patience = 0
-            torch.save(model.state_dict(), 
-                      os.path.join(args.output_dir, f'fold_xlnet_cnn_{fold}_best.pt'))
+
+            if (step + 1) % args.gradient_accumulation_steps == 0:
+                torch.nn.utils.clip_grad_norm_(model.parameters(), Config.max_grad_norm)
+                optimizer.step()
+                scheduler.step()
+                optimizer.zero_grad()
+                global_step += 1
+
+            batch_count += 1
+
+            if global_step % Config.logging_steps == 0:
+                progress_bar.set_postfix({'loss': loss.item()})
+
+        avg_train_loss = total_loss / max(batch_count, 1)
+        val_results = evaluate(model, val_loader, processor, class_weights)
+        epoch_time = time.time() - epoch_start_time
+
+        logging.info(f"\n=== Fold {fold}, Época {epoch+1} ===")
+        logging.info(f"⏱️  Tempo: {epoch_time:.2f}s")
+        logging.info(f"📉 Loss Treino: {avg_train_loss:.4f}")
+        logging.info(f"📊 Loss Validação: {val_results['loss']:.4f}")
+        logging.info(f"🎯 F1 Validação: {val_results['f1']:.4f}")
+        logging.info(f"🎯 Precisão: {val_results['precision']:.4f}")
+        logging.info(f"🎯 Recall: {val_results['recall']:.4f}")
+
+        if val_results['f1'] > best_f1:
+            best_f1 = val_results['f1']
+            patience_counter = 0
+            torch.save(model.state_dict(), best_model_path)
+            logging.info(f"✅ NOVO MELHOR F1: {best_f1:.4f}")
         else:
-            patience += 1
-            if patience >= args.patience:
-                print(f"Early stopping at epoch {epoch+1}")
+            patience_counter += 1
+            if patience_counter >= args.patience:
+                logging.info(f"🛑 Early stopping na época {epoch+1}")
                 break
-    
-    model.load_state_dict(torch.load(
-        os.path.join(args.output_dir, f'fold_xlnet_cnn_{fold}_best.pt')))
-    return evaluate(model, val_loader, label_map)
+
+    # Carrega o melhor modelo e avalia novamente
+    if os.path.exists(best_model_path):
+        model.load_state_dict(torch.load(best_model_path, map_location=Config.device))
+        logging.info(f"📦 Melhor modelo carregado (F1: {best_f1:.4f})")
+
+    return evaluate(model, val_loader, processor, class_weights)
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--data', required=True)
-    parser.add_argument('--output_dir', required=True)
-    parser.add_argument('--k_folds', type=int, default=5)
-    parser.add_argument('--batch_size', type=int, default=16)
-    parser.add_argument('--epochs', type=int, default=15)
-    parser.add_argument('--patience', type=int, default=3)
-    parser.add_argument('--learning_rate', type=float, default=3e-5)
-    parser.add_argument('--max_seq_length', type=int, default=180)
-    args = parser.parse_args()
-    
+    args = parse_args()
+    args.learning_rate = float(args.learning_rate)
+
+    # Seeds
+    torch.manual_seed(Config.seed)
+    np.random.seed(Config.seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(Config.seed)
+
     os.makedirs(args.output_dir, exist_ok=True)
-    
+
+    # Configura logging
     logging.basicConfig(
         level=logging.INFO,
-        format="%(message)s",
+        format="%(asctime)s - %(levelname)s - %(message)s",
         handlers=[
-            logging.FileHandler(os.path.join(args.output_dir, 'resultados_xlnet_cnn.txt')),
+            logging.FileHandler(os.path.join(args.output_dir, 'xlnet_cnn_training.log')),
             logging.StreamHandler(sys.stdout)
         ]
     )
-    
-    Config.batch_size = args.batch_size
-    Config.max_seq_length = args.max_seq_length
-    
-    processor = DataProcessor()
-    examples = processor.get_examples(args.data)
-    label_map = create_label_map(examples)
-    tokenizer = XLNetTokenizer.from_pretrained(Config.model_name)
-    
-    def collate_fn(batch):
-        input_ids = [item['input_ids'] for item in batch]
-        attention_mask = [item['attention_mask'] for item in batch]
-        labels = [item['labels'] for item in batch]
-        predict_mask = [item['predict_mask'] for item in batch]
-        
-        input_ids = torch.nn.utils.rnn.pad_sequence(input_ids, batch_first=True, 
-                                                   padding_value=tokenizer.pad_token_id)
-        attention_mask = torch.nn.utils.rnn.pad_sequence(attention_mask, batch_first=True, padding_value=0)
-        labels = torch.nn.utils.rnn.pad_sequence(labels, batch_first=True, padding_value=label_map['X'])
-        predict_mask = torch.nn.utils.rnn.pad_sequence(predict_mask, batch_first=True, padding_value=0)
-        
-        return {
-            'input_ids': input_ids,
-            'attention_mask': attention_mask,
-            'labels': labels,
-            'predict_mask': predict_mask
+
+    # Salva argumentos
+    with open(os.path.join(args.output_dir, 'xlnet_cnn_args.json'), 'w') as f:
+        json.dump(vars(args), f, indent=2)
+
+    logging.info("=" * 70)
+    logging.info("🚀 INICIANDO TREINAMENTO - XLNet + CNN")
+    logging.info(f"📁 Dados: {args.data}")
+    logging.info(f"📂 Saída: {args.output_dir}")
+    logging.info(f"🤖 Modelo: {args.model_name}")
+    logging.info(f"🎯 Dispositivo: {Config.device}")
+    logging.info(f"🧮 Folds: {args.k_folds}")
+    logging.info("=" * 70)
+
+    try:
+        tokenizer = XLNetTokenizer.from_pretrained(args.model_name)
+        processor = DataProcessor()
+        examples = processor.get_examples(args.data)
+        logging.info(f"📊 Total de exemplos: {len(examples)}")
+        logging.info(f"🏷️  Labels únicos: {len(processor.labels)}")
+
+        kf = KFold(n_splits=args.k_folds, shuffle=True, random_state=Config.seed)
+        fold_results = []
+        all_metrics = []
+
+        for fold, (train_idx, val_idx) in enumerate(kf.split(examples)):
+            fold_start_time = time.time()
+
+            logging.info(f"\n{'='*60}")
+            logging.info(f"🔄 INICIANDO FOLD {fold+1}/{args.k_folds}")
+            logging.info(f"{'='*60}")
+
+            train_examples = [examples[i] for i in train_idx]
+            val_examples = [examples[i] for i in val_idx]
+
+            train_dataset = NERDataset(train_examples, tokenizer, processor, args.max_seq_length)
+            val_dataset = NERDataset(val_examples, tokenizer, processor, args.max_seq_length)
+
+            train_loader = data.DataLoader(
+                train_dataset,
+                batch_size=args.batch_size,
+                shuffle=True,
+                drop_last=True,
+                num_workers=0
+            )
+            val_loader = data.DataLoader(
+                val_dataset,
+                batch_size=args.batch_size,
+                num_workers=0
+            )
+
+            results = train_fold(fold+1, train_loader, val_loader, processor, args)
+
+            fold_time = time.time() - fold_start_time
+            fold_results.append(results['f1'])
+            all_metrics.append({
+                'fold': fold+1,
+                'f1': results['f1'],
+                'precision': results['precision'],
+                'recall': results['recall'],
+                'loss': results['loss'],
+                'time': fold_time
+            })
+
+            logging.info(f"\n📊 RESULTADOS FOLD {fold+1}:")
+            logging.info(f"  F1: {results['f1']:.4f}")
+            logging.info(f"  Precisão: {results['precision']:.4f}")
+            logging.info(f"  Recall: {results['recall']:.4f}")
+            logging.info(f"  Loss: {results['loss']:.4f}")
+            logging.info(f"  Tempo: {fold_time:.2f}s")
+
+            # Salva relatório do fold
+            with open(os.path.join(args.output_dir, f'xlnet_cnn_fold_{fold+1}_report.txt'), 'w') as f:
+                f.write(f"FOLD {fold+1} - XLNet + CNN\n")
+                f.write("="*50 + "\n")
+                f.write(f"F1: {results['f1']:.4f}\n")
+                f.write(f"Precision: {results['precision']:.4f}\n")
+                f.write(f"Recall: {results['recall']:.4f}\n")
+                f.write(f"Loss: {results['loss']:.4f}\n\n")
+                f.write("Classification Report:\n")
+                f.write(results['report'])
+
+        final_f1 = np.mean(fold_results)
+        final_std = np.std(fold_results)
+
+        logging.info(f"\n{'='*70}")
+        logging.info("🎯 RESULTADOS FINAIS - XLNet + CNN")
+        logging.info(f"{'='*70}")
+        logging.info(f"📊 F1 Médio: {final_f1:.4f} (±{final_std:.4f})")
+        logging.info(f"📈 F1 por fold: {[round(f, 4) for f in fold_results]}")
+        logging.info(f"🏆 Melhor F1: {max(fold_results):.4f}")
+        logging.info(f"📉 Pior F1: {min(fold_results):.4f}")
+
+        final_metrics = {
+            'architecture': 'XLNet_CNN',
+            'model': args.model_name,
+            'final_f1_mean': float(final_f1),
+            'final_f1_std': float(final_std),
+            'folds': all_metrics,
+            'args': vars(args)
         }
-    
-    kf = KFold(n_splits=args.k_folds, shuffle=True, random_state=Config.seed)
-    fold_results = []
-    
-    for fold, (train_idx, val_idx) in enumerate(kf.split(examples)):
-        train_examples = [examples[i] for i in train_idx]
-        val_examples = [examples[i] for i in val_idx]
-        
-        train_dataset = NerDataset(train_examples, tokenizer, label_map, Config.max_seq_length)
-        val_dataset = NerDataset(val_examples, tokenizer, label_map, Config.max_seq_length)
-        
-        train_loader = data.DataLoader(train_dataset, batch_size=args.batch_size, 
-                                      shuffle=True, collate_fn=collate_fn)
-        val_loader = data.DataLoader(val_dataset, batch_size=args.batch_size, 
-                                    collate_fn=collate_fn)
-        
-        print(f"\n=== Treinando Fold {fold+1}/{args.k_folds} ===")
-        print(f"Modelo: XLNet + CNN")
-        print(f"Exemplos treino: {len(train_examples)}, validação: {len(val_examples)}")
-        
-        results = train_fold(fold+1, train_loader, val_loader, label_map, args)
-        
-        logging.info(f"\n=== Fold {fold+1} ===")
-        logging.info(f"F1-Score: {results['f1']:.4f}")
-        logging.info("Classification Report:")
-        logging.info(results['report'])
-        
-        fold_results.append(results['f1'])
-    
-    logging.info("\n=== Resultados Finais ===")
-    logging.info(f"Modelo: XLNet + CNN")
-    logging.info(f"F1 Médio: {np.mean(fold_results):.4f} (±{np.std(fold_results):.4f})")
-    logging.info(f"Valores por Fold: {[round(f, 4) for f in fold_results]}")
-    
-    with open(os.path.join(args.output_dir, 'config.txt'), 'w') as f:
-        f.write(str(vars(args)))
+
+        with open(os.path.join(args.output_dir, 'xlnet_cnn_final_metrics.json'), 'w') as f:
+            json.dump(final_metrics, f, indent=2, ensure_ascii=False)
+
+        with open(os.path.join(args.output_dir, 'xlnet_cnn_final_results.txt'), 'w') as f:
+            f.write("RESULTADOS FINAIS - XLNet + CNN\n")
+            f.write("="*60 + "\n")
+            f.write(f"Modelo: {args.model_name}\n")
+            f.write(f"F1 Médio: {final_f1:.4f} (±{final_std:.4f})\n\n")
+            f.write("Folds detalhados:\n")
+            for m in all_metrics:
+                f.write(f"\n  Fold {m['fold']}:\n")
+                f.write(f"    F1: {m['f1']:.4f}\n")
+                f.write(f"    Precision: {m['precision']:.4f}\n")
+                f.write(f"    Recall: {m['recall']:.4f}\n")
+                f.write(f"    Loss: {m['loss']:.4f}\n")
+                f.write(f"    Tempo: {m['time']:.2f}s\n")
+
+        logging.info(f"\n✅ Treinamento concluído!")
+        logging.info(f"📁 Resultados salvos em: {args.output_dir}")
+
+    except Exception as e:
+        logging.error(f"\n❌ ERRO CRÍTICO: {str(e)}")
+        import traceback
+        logging.error(traceback.format_exc())
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
