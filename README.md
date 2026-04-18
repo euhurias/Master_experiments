@@ -6,22 +6,35 @@ This directory has code to train and evaluate classical-based , transformer-base
 
 - CRF
 - BiLSTM
--BiLSTM-CRF
+- BiLSTM-CRF
+- CNN
+- IDCNN
 
 **Transformer-based approaches**:
 
 - BERT
 - XLNet
+- ELECTRA
 
 **Hybrid approaches**:
 
 - BERT-CRF
 - BERT-BiLSTM
 - BERT-BiLSTM-CRF
+- BERT-CNN
+- BERT-IDCNN
 
 - XLNet-CRF
 - XLNet-BiLSTM
 - XLNet-BiLSTM-CRF
+- XLNet-CNN
+- XLNet-IDCNN
+
+- ELECTRA-CRF
+- ELECTRA-BiLSTM
+- ELECTRA-BiLSTM-CRF
+- ELECTRA-CNN
+- ELECTRA-IDCNN
 
 ## Environment Setup
 
